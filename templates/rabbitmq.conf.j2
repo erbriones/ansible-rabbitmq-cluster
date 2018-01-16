@@ -1,0 +1,26 @@
+# Optional SSL configuration
+{% if rabbitmq_enable_tls -%}
+listeners.ssl.default            = 5671
+
+ssl_options.cacertfile           = {{ rabbitmq_ca_cert_file }}
+ssl_options.certfile             = {{ rabbitmq_cert_file }}
+ssl_options.keyfile              = {{ rabbtimq_cert_key }}
+ssl_options.verify               = {{ rabbitmq_ssl_verify }}
+ssl_options.fail_if_no_peer_cert = {% if rabbitmq_ssl_fail_on_missing_peer_cert %}true{% else %}false{% endif %}
+
+# Supported SSL/TLS (disable TLS 1 and SSLv3)
+ssl_options.versions.1 = tlsv1.2
+ssl_options.versions.2 = tlsv1.1
+
+# Enforce server cipher suite preference
+ssl_options.honor_cipher_order = true
+ssl_options.honor_ecc_order    = true
+{% endif -%}
+
+# Cluster configuration
+cluster_formation.peer_discovery_backend = rabbit_peer_discovery_classic_config
+cluster_partition_handling = {{ rabbitmq_partition_handling }}
+
+{% for host in groups['rabbitmq'] -%}
+cluster_formation.classic_config.nodes.{{loop.index}} = rabbit@{{hostvars[host]['ansible_hostname']}}
+{% endfor -%}

@@ -1,0 +1,7 @@
+rabbitmq_file_limit: 65536
+rabbitmq_plugins: rabbitmq_management
+rabbitmq_enable_tls: no
+rabbitmq_user_tags: []
+rabbitmq_partition_handling: ignore
+rabbitmq_ssl_verify: verify_peer
+rabbitmq_ssl_fail_on_missing_peer_cert: yes

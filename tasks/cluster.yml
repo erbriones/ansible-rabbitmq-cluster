@@ -1,0 +1,54 @@
+---
+- name: Copy RabbitMQ configuration
+  template:
+    src: rabbitmq.conf.j2
+    dest: /etc/rabbitmq/rabbitmq.conf
+
+- name: Restart RabbitMQ Leader
+  systemd:
+    name: rabbitmq-server
+    state: restarted
+    daemon_reload: yes
+  delegate_to: "{{ rabbitmq_leader }}"
+  run_once: yes
+
+- name: Wait for leader to become active
+  pause:
+    seconds: 10
+
+- name: Fetch erlang cookie
+  slurp: src=/var/lib/rabbitmq/.erlang.cookie
+  register: erlang_cookie
+  delegate_to: "{{ rabbitmq_leader }}"
+  run_once: yes
+
+- debug:
+    msg: "{{ erlang_cookie['content'] | b64decode }}"
+    verbosity: 2
+
+- name: Redistribute erlang cookie
+  copy:
+      content: "{{ erlang_cookie.content | b64decode }}"
+      dest: /var/lib/rabbitmq/.erlang.cookie
+      mode: 0400
+      owner: rabbitmq
+      group: rabbitmq
+
+- name: Restart RabbitMQ Server
+  systemd:
+    name: rabbitmq-server
+    state: restarted
+    daemon_reload: yes
+  when: inventory_hostname != rabbitmq_leader
+
+- name: Stop RabbitMQ apps
+  command: rabbitmqctl stop_app
+  when: inventory_hostname != rabbitmq_leader
+
+- name: Leave any existing cluster
+  command: rabbitmqctl force_reset
+  when: inventory_hostname != rabbitmq_leader
+
+- name: Start RabbitMQ apps
+  command: rabbitmqctl start_app
+  when: inventory_hostname != rabbitmq_leader

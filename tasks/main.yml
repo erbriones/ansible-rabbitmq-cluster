@@ -1,0 +1,5 @@
+---
+- fail: msg="Unable to assign cluster 'rabbitmq_cluster_name' required"
+  when: rabbitmq_cluster_name is undefined
+- include: configure.yml
+- include: cluster.yml
